@@ -1,0 +1,83 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XLSX to CSV 변환기</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+</head>
+<body>
+  <h1>엑셀 파일을 CSV로 변환</h1>
+  
+  <input type="file" id="upload" />
+  <div id="sheet-selector" style="margin-top: 20px;"></div>
+  <button id="download-btn" style="display: none;" onclick="convertToCSV()">CSV로 다운로드</button>
+  <pre id="csv-output" style="white-space: pre-wrap;"></pre>
+
+  <script>
+    let workbook = null;
+    let selectedSheetName = null;
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+
+      if (!file) {
+        alert('엑셀 파일을 선택해주세요!');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const data = event.target.result;
+        workbook = XLSX.read(data, { type: 'binary' });
+
+        // 시트 목록을 동적으로 생성하여 사용자에게 선택하게 합니다
+        const sheetSelector = document.getElementById('sheet-selector');
+        sheetSelector.innerHTML = ''; // 기존 선택지 초기화
+
+        // 시트 목록을 동적으로 추가
+        workbook.SheetNames.forEach((sheetName) => {
+          const button = document.createElement('button');
+          button.innerText = sheetName;
+          button.onclick = () => selectSheet(sheetName);
+          sheetSelector.appendChild(button);
+        });
+      };
+
+      reader.readAsBinaryString(file);
+    }
+
+    function selectSheet(sheetName) {
+      selectedSheetName = sheetName;
+
+      // 선택한 시트 이름을 표시
+      document.getElementById('download-btn').style.display = 'inline-block';
+      document.getElementById('csv-output').textContent = '선택한 시트: ' + sheetName;
+    }
+
+    function convertToCSV() {
+      if (!selectedSheetName) {
+        alert('시트를 선택해주세요!');
+        return;
+      }
+
+      const sheet = workbook.Sheets[selectedSheetName];
+      const csv = XLSX.utils.sheet_to_csv(sheet);
+
+      // CSV 출력
+      document.getElementById('csv-output').textContent = csv;
+
+      // CSV 파일로 다운로드
+      const bom = '\ufeff'; // BOM (Byte Order Mark)
+      const blob = new Blob([bom, csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = selectedSheetName + '.csv';
+      link.click();
+    }
+
+    // 파일 업로드 이벤트 처리
+    document.getElementById('upload').addEventListener('change', handleFileUpload);
+  </script>
+</body>
+</html>
